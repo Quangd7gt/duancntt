@@ -22,8 +22,9 @@ main/java/com/example/qlsv
  ├── infrastructure
  │    └── GpsAdapter.java
  └── repository
-      └── LocationRepository.java
-Tạo class Location trong domain.
+      └── LocationRepository.java (nếu ông muốn lưu dưx liệu vào database)
+   
+5.Tạo class Location trong domain.
 Viết GpsAdapter để giả lập dữ liệu GPS.
 Tạo interface GpsService và class GpsServiceImpl.
 Viết test đơn giản để in ra vị trí hiện tại.
