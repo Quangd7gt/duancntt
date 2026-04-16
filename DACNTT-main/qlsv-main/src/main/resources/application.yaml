@@ -1,0 +1,29 @@
+spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: mainhuyen02904@gmail.com
+    password: dftv pbug kayz wbfz # Đây là mật khẩu ứng dụng, không phải mật khẩu tài khoản Gmail của bạn. Bạn cần tạo mật khẩu ứng dụng trong cài đặt bảo mật của tài khoản Google để sử dụng ở đây.
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  application:
+    name: qlsv
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  datasource:
+    # Đã đổi sang 127.0.0.1 và cổng 3307 theo đúng config của bạn
+    # student_attendance_db là tên database bạn cần tạo
+    url: jdbc:mysql://127.0.0.1:3307/student_attendance_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: 
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+app:
+  jwtSecret: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970337336763979244226452948404D6351655468576D5A7134743777217A25432A"
+  jwtExpirationInMs: 86400000

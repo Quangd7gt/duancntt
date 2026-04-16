@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: qlsv
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  datasource:
+    url: jdbc:mysql://103.149.170.20:3306/db_A46764
+    username: A46764
+    password: A46764@thanglong
+    driver-class-name: com.mysql.cj.jdbc.Driver
+app:
+  jwt:
+    # Đây LÀ MỘT KEY BÍ MẬT - TUYỆT ĐỐI KHÔNG DÙNG KEY NÀY TRONG PRODUCTION
+    # Bạn có thể tự generate một chuỗi base64 64-byte
+    secret: kP5H8fT7eJy5qV3sW9zA4B+EaFbGcDqLpRtYvXkIuN2mSjZoPlC8wJ7/mGfKqU6sH3jD9lR0oA1cZbE2nQ7vYw==
+    expiration-ms: 86400000

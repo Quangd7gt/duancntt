@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@domain/*": [
+                "src/domain/*"
+            ],
+            "@usecases/*": [
+                "src/usecases/*"
+            ],
+            "@infra/*": [
+                "src/infrastructure/*"
+            ],
+            "@presentation/*": [
+                "src/presentation/*"
+            ]
+        }
+    },
+    "include": [
+        "src"
+    ]
+}

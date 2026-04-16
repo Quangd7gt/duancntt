@@ -1,0 +1,82 @@
+├── StudentAttendanceApplication.java   (Main class)
+│
+├── domain                          (Tầng 1: Lõi nghiệp vụ - KHÔNG Spring)
+│   ├── model                       (Các đối tượng nghiệp vụ cốt lõi)
+│   │   ├── Student.java
+│   │   ├── Course.java             (Lớp học phần)
+│   │   ├── AttendanceSession.java  (Phiên điểm danh)
+│   │   ├── AttendanceRecord.java   (Bản ghi điểm danh)
+│   │   ├── User.java               (Người dùng chung)
+│   │   └── enums                   (Các enum: AttendanceStatus, Role...)
+│   │
+│   ├── repository                  (Interfaces của Repository)
+│   │   ├── StudentRepository.java
+│   │   ├── CourseRepository.java
+│   │   ├── AttendanceSessionRepository.java
+│   │   └── UserRepository.java
+│   │
+│   └── exception                   (Các exception nghiệp vụ)
+│       ├── StudentNotFoundException.java
+│       └── SessionClosedException.java
+│
+├── application                     (Tầng 2: Logic ứng dụng - "Use Cases")
+│   ├── service                     (Interfaces cho các Use Cases)
+│   │   ├── AttendanceService.java  (VD: startSession, markAttendance)
+│   │   ├── StudentService.java
+│   │   ├── ReportService.java
+│   │   └── UserService.java
+│   │
+│   ├── impl                        (Triển khai các Use Cases)
+│   │   ├── AttendanceServiceImpl.java
+│   │   ├── StudentServiceImpl.java
+│   │   └── ...
+│   │
+│   ├── dto                         (Data Transfer Objects)
+│   │   ├── request                 (Dùng cho đầu vào)
+│   │   │   ├── CreateStudentRequest.java
+│   │   │   ├── MarkAttendanceRequest.java
+│   │   │   └── LoginRequest.java
+│   │   └── response                (Dùng cho đầu ra)
+│   │       ├── StudentResponse.java
+│   │       ├── AttendanceReportResponse.java
+│   │       └── JwtAuthResponse.java
+│   │
+│   └── mapper                      (MapStruct mappers)
+│       ├── StudentMapper.java
+│       ├── CourseMapper.java
+│       └── UserMapper.java
+│
+└── infrastructure                  (Tầng 3: Frameworks - "Bên ngoài")
+    │
+    ├── web                         (Lớp giao tiếp Web - REST API)
+    │   ├── controller
+    │   │   ├── AttendanceController.java  (Cho Giảng viên)
+    │   │   ├── ReportController.java      (Cho Giáo vụ)
+    │   │   ├── StudentController.java     (Cho Sinh viên xem)
+    │   │   └── AuthController.java        (Đăng nhập)
+    │   └── advice
+    │       └── GlobalExceptionHandler.java (Xử lý exception tập trung)
+    │
+    ├── config                      (Cấu hình)
+    │   ├── SecurityConfig.java     (Cấu hình Spring Security)
+    │   ├── WebConfig.java
+    │   └── OpenApiConfig.java      (Nếu dùng Swagger)
+    │
+    ├── persistence                 (Triển khai Data Access)
+    │   ├── entity                  (Các JPA Entities)
+    │   │   ├── StudentEntity.java
+    │   │   ├── CourseEntity.java
+    │   │   └── ...
+    │   │   (LƯU Ý: Một cách tiếp cận là ánh xạ từ Domain Model sang
+    │   │    JPA Entity, nhưng để đơn giản, có thể dùng Domain Model
+    │   │    làm JPA Entity luôn và đặt `@Entity` vào `domain.model`)
+    │   │
+    │   └── repository                (Triển khai Repository Interfaces)
+    │       (Phần này Spring Data JPA tự động tạo,
+    │        bạn chỉ cần tạo interface trong `domain.repository`
+    │        và `extends JpaRepository`)
+    │
+    └── security                    (Triển khai bảo mật)
+        ├── JwtTokenProvider.java
+        ├── JwtAuthenticationFilter.java
+        └── UserDetailsServiceImpl.java (Implement UserDetailsService)
