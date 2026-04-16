@@ -1,4 +1,4 @@
-README - Thiết kế GPS Module
+README 
 1. Domain Layer
 Tạo class Location để lưu thông tin:
 latitude (vĩ độ)
