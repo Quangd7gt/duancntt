@@ -7,4 +7,7 @@ import lombok.Data;
 public class StartSessionRequest {
     @NotNull(message = "Course ID không được để trống")
     private Long courseId;
+
+    private Double latitude;
+    private Double longitude;
 }

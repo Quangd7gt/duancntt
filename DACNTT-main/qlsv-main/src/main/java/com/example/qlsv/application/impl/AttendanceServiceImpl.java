@@ -12,6 +12,7 @@ import com.example.qlsv.domain.model.enums.AttendanceStatus;
 import com.example.qlsv.domain.model.enums.Role;
 import com.example.qlsv.domain.model.enums.SessionStatus;
 import com.example.qlsv.domain.repository.*;
+import com.example.qlsv.application.service.GpsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
     private final AttendanceSessionMapper sessionMapper;
+    private final GpsService gpsService;
 
     @Override
     @Transactional
@@ -67,6 +69,8 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .startTime(now)
                 .status(SessionStatus.OPEN)
                 .qrCodeData(UUID.randomUUID().toString())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
                 .build();
 
         return sessionMapper.toResponse(sessionRepository.save(session));
@@ -84,6 +88,14 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         AttendanceSession session = sessionRepository.findByCourseIdAndStatus(request.getCourseId(), SessionStatus.OPEN)
                 .orElseThrow(() -> new BusinessException("Giảng viên chưa mở điểm danh hoặc phiên đã đóng."));
+
+        // KIỂM TRA GPS KHOẢNG CÁCH
+        gpsService.checkDistanceOrThrow(
+                request.getLatitude(), 
+                request.getLongitude(), 
+                session.getLatitude(), 
+                session.getLongitude()
+        );
 
         boolean isInClass = session.getCourse().getStudents().stream()
                 .anyMatch(s -> s.getId().equals(student.getId()));

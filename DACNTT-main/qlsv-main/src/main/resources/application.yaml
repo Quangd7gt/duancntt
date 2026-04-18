@@ -19,7 +19,7 @@ spring:
   datasource:
     # Đã đổi sang 127.0.0.1 và cổng 3307 theo đúng config của bạn
     # student_attendance_db là tên database bạn cần tạo
-    url: jdbc:mysql://127.0.0.1:3307/student_attendance_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://127.0.0.1:3306/student_attendance_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
     password: 
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -27,3 +27,4 @@ spring:
 app:
   jwtSecret: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970337336763979244226452948404D6351655468576D5A7134743777217A25432A"
   jwtExpirationInMs: 86400000
+  max-allowed-distance: 50

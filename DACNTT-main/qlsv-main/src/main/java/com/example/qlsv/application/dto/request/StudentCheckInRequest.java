@@ -9,4 +9,7 @@ public class StudentCheckInRequest {
     private Long courseId;
 
     private String qrCodeData; // Trường này phải có để service gọi getQrCodeData()
+
+    private Double latitude;
+    private Double longitude;
 }

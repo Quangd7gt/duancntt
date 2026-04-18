@@ -7,12 +7,18 @@ const attendanceRepository = getAttendanceRepository();
  * Start Attendance Session Use Case
  * Lecturer opens attendance for a course
  */
-export const startSessionUseCase = async (courseId) => {
+export const startSessionUseCase = async (data) => {
+    const { courseId, latitude, longitude } = typeof data === 'object' ? data : { courseId: data };
+    
     if (!courseId) {
         throw new Error('Course ID không được để trống');
     }
 
-    const response = await attendanceRepository.startSession({ courseId });
+    const response = await attendanceRepository.startSession({ 
+        courseId,
+        latitude: latitude || null,
+        longitude: longitude || null
+    });
     return AttendanceSession.fromApi(response);
 };
 
@@ -52,8 +58,8 @@ export const checkInUseCase = async (checkInData) => {
         const response = await attendanceRepository.checkIn({
             qrCodeData,
             courseId,
-            latitude: null,
-            longitude: null
+            latitude: checkInData.latitude || null,
+            longitude: checkInData.longitude || null
         });
         return response;
     } catch (error) {

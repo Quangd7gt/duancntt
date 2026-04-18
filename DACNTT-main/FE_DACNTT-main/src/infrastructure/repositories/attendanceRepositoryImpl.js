@@ -23,10 +23,10 @@ const attendanceRepositoryImpl = {
 
     /**
      * Check-in for attendance
-     * @param {Object} checkInData - { qrCodeData, courseId }
+     * @param {Object} checkInData - { qrCodeData, courseId, latitude, longitude }
      */
-    async checkIn({ courseId, qrCodeData }) {
-        const response = await axiosClient.post(API_ENDPOINTS.ATTENDANCE.CHECK_IN, { courseId, qrCodeData });
+    async checkIn(checkInData) {
+        const response = await axiosClient.post(API_ENDPOINTS.ATTENDANCE.CHECK_IN, checkInData);
         return response;
     },
 

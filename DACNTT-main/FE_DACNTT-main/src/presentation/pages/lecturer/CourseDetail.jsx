@@ -60,12 +60,40 @@ const CourseDetail = () => {
     // HANDLERS
     const handleStartSession = async () => {
         setSessionLoading(true);
+
+        // --- LẤY TỌA ĐỘ GPS GIẢNG VIÊN ---
+        let latitude = null;
+        let longitude = null;
+
         try {
-            const res = await startSessionUseCase(courseId);
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: false,
+                    timeout: 15000
+                });
+            });
+            latitude = position.coords.latitude;
+            longitude = position.coords.longitude;
+        } catch (gpsError) {
+            console.error("Lỗi lấy tọa độ giảng viên:", gpsError);
+            toast.error("Không thể lấy vị trí GPS để mở phiên điểm danh.");
+            setSessionLoading(false);
+            return;
+        }
+
+        try {
+            const res = await startSessionUseCase({
+                courseId,
+                latitude,
+                longitude
+            });
             setCurrentSession(res);
-            toast.success("Đã mở phiên điểm danh");
-        } catch (err) { toast.error(err.message || "Lỗi mở phiên"); }
-        finally { setSessionLoading(false); }
+            toast.success("Đã mở phiên điểm danh (Cùng tọa độ GPS)");
+        } catch (err) { 
+            toast.error(err.message || "Lỗi mở phiên"); 
+        } finally { 
+            setSessionLoading(false); 
+        }
     };
 
     const handleCloseSession = async () => {

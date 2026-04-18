@@ -67,12 +67,41 @@ const CheckInPage = () => {
             return;
         }
 
+        // --- LẤY TỌA ĐỘ GPS ---
+        let latitude = null;
+        let longitude = null;
+
+        try {
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: false,
+                    timeout: 15000
+                });
+            });
+            latitude = position.coords.latitude;
+            longitude = position.coords.longitude;
+        } catch (gpsError) {
+            console.error('GPS Error Details:', gpsError);
+            let msg = 'Không thể lấy vị trí: ';
+            switch (gpsError.code) {
+                case 1: msg += 'Bạn đã từ chối quyền truy cập vị trí.'; break;
+                case 2: msg += 'Không thể xác định vị trí (Sóng yếu hoặc lỗi OS).'; break;
+                case 3: msg += 'Hết thời gian chờ (Timeout).'; break;
+                default: msg += 'Lỗi không xác định.';
+            }
+            setError(msg);
+            setLoading(false);
+            return; // Chặn luôn không cho gửi null lên BE
+        }
+
         const payload = {
             qrCodeData: qrData,
-            courseId: selectedCourseId
+            courseId: selectedCourseId,
+            latitude,
+            longitude
         };
 
-        console.log('=== CHECK-IN REQUEST ===');
+        console.log('=== CHECK-IN REQUEST WITH GPS ===');
         console.log('CheckIn Payload:', JSON.stringify(payload, null, 2));
 
         try {
@@ -84,9 +113,6 @@ const CheckInPage = () => {
             setSuccess('Điểm danh thành công!');
         } catch (err) {
             console.error('CheckIn Error:', err);
-            
-            // [FIX QUAN TRỌNG] Hiển thị thông báo lỗi từ Backend (VD: "Sinh viên đã điểm danh rồi")
-            // Ưu tiên lấy message từ err.message (đã được UseCase xử lý)
             setError(err.message || 'Không thể điểm danh. Vui lòng thử lại.');
         } finally {
             setLoading(false);

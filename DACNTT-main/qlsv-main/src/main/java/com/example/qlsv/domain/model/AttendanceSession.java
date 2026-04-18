@@ -33,4 +33,8 @@ public class AttendanceSession {
 
     @Enumerated(EnumType.STRING)
     private SessionStatus status;
+
+    private Double latitude;
+
+    private Double longitude;
 }
