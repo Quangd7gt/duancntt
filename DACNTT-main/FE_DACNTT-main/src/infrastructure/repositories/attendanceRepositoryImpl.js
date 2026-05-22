@@ -31,14 +31,13 @@ const attendanceRepositoryImpl = {
     },
 
     async getSessionsByCourse(courseId) {
-        console.warn('API getSessionsByCourse chưa khả dụng');
-        return []; 
-        // return await axiosClient.get(API_ENDPOINTS.ATTENDANCE.GET_BY_COURSE(courseId));
+        const response = await axiosClient.get(API_ENDPOINTS.ATTENDANCE.GET_BY_COURSE(courseId));
+        return response;
     },
+
     async getSessionRecords(sessionId) {
-        console.warn('API getSessionRecords chưa khả dụng');
-        return [];
-        // return await axiosClient.get(API_ENDPOINTS.ATTENDANCE.GET_SESSION_RECORDS(sessionId));
+        const response = await axiosClient.get(API_ENDPOINTS.ATTENDANCE.GET_SESSION_RECORDS(sessionId));
+        return response;
     },
 
     

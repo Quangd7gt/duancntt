@@ -2,33 +2,34 @@ import React, { useMemo } from 'react';
 
 const StatisticsCard = ({ statistics, onSendBanNotification, onExportExcel }) => {
     // Xử lý dữ liệu an toàn
-    const { totalStudents, totalBanned, averageAttendance, list } = useMemo(() => {
+    const { totalStudents, totalSessions, totalBanned, averageAttendance, list } = useMemo(() => {
         const data = statistics || {};
-        
-        // Lấy danh sách (Ưu tiên studentStats từ UseCase đã fix)
         const rawList = data.studentStats || data.studentDetails || [];
-        
-        const totalS = rawList.length;
-        // Lấy số lượng cấm thi (ưu tiên số đã tính sẵn từ UseCase)
-        const totalB = (typeof data.totalBanned === 'number') 
-            ? data.totalBanned 
+
+        const totalS = typeof data.totalStudents === 'number' ? data.totalStudents : rawList.length;
+        const totalSessionsCount = typeof data.totalSessions === 'number'
+            ? data.totalSessions
+            : (rawList[0]?.totalSessions || 0);
+        const totalB = (typeof data.totalBanned === 'number')
+            ? data.totalBanned
             : rawList.filter(s => s.isBanned).length;
 
-        // Tính % đi học trung bình
         let avg = 0;
-        if (totalS > 0) {
+        if (totalS > 0 && totalSessionsCount > 0) {
             const sumPercent = rawList.reduce((acc, curr) => {
-                const percent = curr.absentPercentage || 0;
-                return acc + (100 - percent);
+                const attended = curr.attendedSessions || 0;
+                const total = curr.totalSessions || totalSessionsCount;
+                return acc + (total > 0 ? (attended / total) * 100 : 0);
             }, 0);
             avg = Math.round(sumPercent / totalS);
         }
 
-        return { 
-            totalStudents: totalS, 
-            totalBanned: totalB, 
-            averageAttendance: avg, 
-            list: rawList 
+        return {
+            totalStudents: totalS,
+            totalSessions: totalSessionsCount,
+            totalBanned: totalB,
+            averageAttendance: avg,
+            list: rawList
         };
     }, [statistics]);
 
@@ -55,7 +56,11 @@ const StatisticsCard = ({ statistics, onSendBanNotification, onExportExcel }) =>
             </div>
 
             {/* Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="bg-gradient-to-br from-sky-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
+                    <p className="text-sky-100 text-sm font-medium mb-1">Tổng buổi điểm danh</p>
+                    <h3 className="text-3xl font-bold">{totalSessions}</h3>
+                </div>
                 {/* Tổng SV */}
                 <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg transform transition hover:scale-105 duration-200">
                     <div className="flex justify-between items-start">
@@ -124,7 +129,8 @@ const StatisticsCard = ({ statistics, onSendBanNotification, onExportExcel }) =>
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã SV</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Họ tên</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Vắng / Tổng</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Có mặt / Tổng</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Vắng</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tỷ lệ vắng</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
                             </tr>
@@ -136,23 +142,37 @@ const StatisticsCard = ({ statistics, onSendBanNotification, onExportExcel }) =>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.studentCode}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.studentName}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500">
-                                            <span className="text-red-600 font-bold">{student.absentSessions}</span> 
-                                            <span className="text-gray-400 mx-1">/</span> 
-                                            {student.totalSessions}
+                                            <span className="text-green-600 font-bold">{student.attendedSessions ?? 0}</span>
+                                            <span className="text-gray-400 mx-1">/</span>
+                                            {totalSessions}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                                (student.absentPercentage || 0) >= 20 
-                                                ? 'bg-red-100 text-red-800' 
-                                                : (student.absentPercentage || 0) > 0 
-                                                    ? 'bg-yellow-100 text-yellow-800' 
-                                                    : 'bg-green-100 text-green-800'
-                                            }`}>
-                                                {student.absentPercentage || 0}%
+                                            <span className="text-red-600 font-semibold">
+                                                {totalSessions > 0
+                                                    ? (student.absentSessions ?? 0)
+                                                    : 0}
                                             </span>
                                         </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                            {(() => {
+                                                const absentPct = totalSessions > 0
+                                                    ? (student.absentPercentage || 0)
+                                                    : 0;
+                                                return (
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                                absentPct >= 20
+                                                ? 'bg-red-100 text-red-800'
+                                                : absentPct > 0
+                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                    : 'bg-green-100 text-green-800'
+                                            }`}>
+                                                {absentPct}%
+                                            </span>
+                                                );
+                                            })()}
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            {student.isBanned ? (
+                                            {totalSessions > 0 && student.isBanned ? (
                                                 <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 border border-red-200">
                                                     🚫 Cấm thi
                                                 </span>
@@ -166,8 +186,10 @@ const StatisticsCard = ({ statistics, onSendBanNotification, onExportExcel }) =>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                                        Chưa có dữ liệu thống kê.
+                                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                                        {totalSessions === 0
+                                            ? 'Chưa có buổi điểm danh nào. Mở phiên điểm danh và đóng phiên để tích lũy dữ liệu.'
+                                            : 'Chưa có sinh viên trong lớp.'}
                                     </td>
                                 </tr>
                             )}

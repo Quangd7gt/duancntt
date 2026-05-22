@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class GpsServiceImpl implements GpsService {
 
-    @Value("${app.max-allowed-distance:50}")
+    @Value("${app.max-allowed-distance:100}")
     private double maxDistance;
 
     private static final double EARTH_RADIUS = 6371e3; // Bán kính trái đất tính bằng mét

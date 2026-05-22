@@ -103,31 +103,38 @@ export const getCourseStatisticsUseCase = async (courseId) => {
         ? data.studentStats 
         : (Array.isArray(data.studentDetails) ? data.studentDetails : []);
 
+    const courseTotalSessions = data.totalSessions ?? 0;
+
     const mappedDetails = rawDetails.map(s => {
-        const absentPercent = s.absentPercentage || 0;
-        
-        // Logic cấm thi: Ưu tiên Backend (banned), nếu không có thì tự tính
-        const isBannedCalc = (s.banned === true) || (s.isBanned === true) || (absentPercent >= 20);
+        const attendedSessions = s.attendedSessions ?? s.presentSessions ?? 0;
+        const absentSessions = courseTotalSessions > 0
+            ? Math.max(0, courseTotalSessions - attendedSessions)
+            : 0;
+        const absentPercentage = courseTotalSessions > 0
+            ? Math.round((absentSessions / courseTotalSessions) * 1000) / 10
+            : 0;
+        const isBanned = courseTotalSessions > 0 && absentPercentage > 20;
 
         return {
             studentId: s.studentId || s.id,
             studentCode: s.studentCode || '',
-            // Map fullName -> studentName
             studentName: s.fullName || s.studentName || 'Sinh viên',
-            totalSessions: s.totalSessions || 0,
-            // Map absentCount -> absentSessions
-            absentSessions: (s.absentCount !== undefined) ? s.absentCount : (s.absentSessions || 0),
-            absentPercentage: absentPercent,
-            isBanned: isBannedCalc
+            totalSessions: courseTotalSessions,
+            attendedSessions,
+            absentSessions,
+            absentPercentage,
+            isBanned,
         };
     });
 
     return {
-        totalBanned: (typeof data.totalBanned === 'number') 
-            ? data.totalBanned 
-            : mappedDetails.filter(s => s.isBanned).length,
-        studentStats: mappedDetails, 
-        studentDetails: mappedDetails 
+        totalBanned: courseTotalSessions > 0
+            ? mappedDetails.filter(s => s.isBanned).length
+            : 0,
+        totalSessions: courseTotalSessions,
+        totalStudents: data.totalStudents ?? mappedDetails.length,
+        studentStats: mappedDetails,
+        studentDetails: mappedDetails
     };
 };
 

@@ -12,7 +12,13 @@ import {
     sendBanNotificationsUseCase, 
     exportExcelUseCase 
 } from '../../../usecases/courses/courseUseCases';
-import { startSessionUseCase, closeSessionUseCase } from '../../../usecases/attendance/attendanceUseCases';
+import {
+    startSessionUseCase,
+    closeSessionUseCase,
+    getSessionsByCourseUseCase,
+    getSessionRecordsUseCase,
+} from '../../../usecases/attendance/attendanceUseCases';
+import AttendanceTable from '../../components/features/AttendanceTable';
 
 const CourseDetail = () => {
     const { courseId } = useParams();
@@ -23,6 +29,8 @@ const CourseDetail = () => {
     const [students, setStudents] = useState([]);
     const [statsData, setStatsData] = useState(null); 
     const [currentSession, setCurrentSession] = useState(null);
+    const [sessionRecords, setSessionRecords] = useState([]);
+    const [recordsLoading, setRecordsLoading] = useState(false);
     
     // UI States
     const [loading, setLoading] = useState(true);
@@ -57,6 +65,68 @@ const CourseDetail = () => {
         loadData();
     }, [courseId]);
 
+    const refreshStatistics = async () => {
+        try {
+            const statsRes = await getCourseStatisticsUseCase(courseId);
+            setStatsData(statsRes);
+        } catch (err) {
+            console.error('Lỗi tải thống kê:', err);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'statistics' && courseId) {
+            refreshStatistics();
+        }
+    }, [activeTab, courseId, currentSession?.id]);
+
+    const fetchSessionRecords = async (sessionId, silent = false) => {
+        if (!sessionId) return;
+        if (!silent) setRecordsLoading(true);
+        try {
+            const records = await getSessionRecordsUseCase(sessionId);
+            setSessionRecords(records);
+        } catch (err) {
+            console.error('Lỗi tải danh sách điểm danh phiên:', err);
+            if (!silent) toast.error('Không thể tải danh sách điểm danh');
+        } finally {
+            if (!silent) setRecordsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        const restoreOpenSession = async () => {
+            try {
+                const sessions = await getSessionsByCourseUseCase(courseId);
+                const openSession = sessions.find((s) => s.status === 'OPEN');
+                if (openSession) {
+                    setCurrentSession(openSession);
+                }
+            } catch (err) {
+                console.error('Lỗi khôi phục phiên điểm danh:', err);
+            }
+        };
+        if (courseId) {
+            restoreOpenSession();
+        }
+    }, [courseId]);
+
+    useEffect(() => {
+        const sessionId = currentSession?.id;
+        if (!sessionId) {
+            setSessionRecords([]);
+            return undefined;
+        }
+
+        fetchSessionRecords(sessionId);
+
+        const intervalId = setInterval(() => {
+            fetchSessionRecords(sessionId, true);
+        }, 5000);
+
+        return () => clearInterval(intervalId);
+    }, [currentSession?.id]);
+
     // HANDLERS
     const handleStartSession = async () => {
         setSessionLoading(true);
@@ -88,6 +158,7 @@ const CourseDetail = () => {
                 longitude
             });
             setCurrentSession(res);
+            setSessionRecords([]);
             toast.success("Đã mở phiên điểm danh (Cùng tọa độ GPS)");
         } catch (err) { 
             toast.error(err.message || "Lỗi mở phiên"); 
@@ -101,6 +172,8 @@ const CourseDetail = () => {
         try {
             await closeSessionUseCase(courseId);
             setCurrentSession(null);
+            setSessionRecords([]);
+            await refreshStatistics();
             toast.success("Đã đóng phiên");
         } catch (err) { toast.error(err.message || "Lỗi đóng phiên"); }
         finally { setSessionLoading(false); }
@@ -172,6 +245,30 @@ const CourseDetail = () => {
                         <QRCodeGenerator value={currentSession.qrCodeData} size={250} />
                     </div>
                     <p className="text-gray-500 mt-2 text-sm">Yêu cầu sinh viên quét mã để điểm danh</p>
+
+                    <div className="mt-8 text-left">
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">Sinh viên đã điểm danh</h3>
+                                <p className="text-sm text-gray-500">
+                                    {sessionRecords.length}/{students.length} sinh viên
+                                    <span className="text-gray-400 ml-1">(tự cập nhật mỗi 5 giây)</span>
+                                </p>
+                            </div>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                loading={recordsLoading}
+                                onClick={() => fetchSessionRecords(currentSession.id)}
+                            >
+                                Làm mới
+                            </Button>
+                        </div>
+                        <AttendanceTable
+                            records={sessionRecords}
+                            loading={recordsLoading && sessionRecords.length === 0}
+                        />
+                    </div>
                 </div>
             )}
 

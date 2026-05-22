@@ -7,9 +7,9 @@ import java.util.List;
 @Data
 @Builder
 public class CourseDashboardResponse {
-    // Thuộc tính bạn muốn thêm
     private int totalBanned;
+    private long totalSessions;
+    private int totalStudents;
 
-    // Danh sách sinh viên chi tiết (cũ)
     private List<StudentAttendanceStat> studentDetails;
 }

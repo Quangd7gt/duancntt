@@ -12,8 +12,8 @@ import com.example.qlsv.domain.exception.BusinessException;
 import com.example.qlsv.domain.exception.ResourceNotFoundException;
 import com.example.qlsv.domain.model.*;
 import com.example.qlsv.domain.model.enums.AttendanceStatus;
-// Import Custom Enum
 import com.example.qlsv.domain.model.enums.Role;
+import com.example.qlsv.domain.model.enums.SessionStatus;
 import com.example.qlsv.domain.repository.*;
 import com.example.qlsv.infrastructure.service.EmailService;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +41,7 @@ public class CourseServiceImpl implements CourseService {
     private final SemesterRepository semesterRepository;
     private final UserRepository userRepository;
     private final AttendanceRecordRepository recordRepository;
+    private final AttendanceSessionRepository sessionRepository;
     private final EmailService emailService;
     private final CourseMapper courseMapper;
     private final UserMapper userMapper;
@@ -173,17 +174,20 @@ public class CourseServiceImpl implements CourseService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course", "id", courseId));
 
-        // 2. Tính tổng số buổi lẽ ra phải học tính đến hiện tại
-        long totalSessionsPassed = calculateTotalSessions(
-                course.getSemester().getStartDate(),
-                LocalDate.now(),
-                course.getDayOfWeek()
-        );
+        // 2. Đếm phiên điểm danh thực tế (JPQL rõ ràng + fallback theo bản ghi)
+        long totalSessions = sessionRepository.countByCourseIdAndStatus(courseId, SessionStatus.CLOSED);
+        if (totalSessions == 0) {
+            totalSessions = sessionRepository.countAllByCourseId(courseId);
+        }
+        long sessionsWithRecords = recordRepository.countDistinctSessionsByCourseId(courseId);
+        if (totalSessions < sessionsWithRecords) {
+            totalSessions = sessionsWithRecords;
+        }
 
         // 3. Lấy danh sách sinh viên trong lớp
         List<User> students = courseRepository.findStudentsByCourseId(courseId);
 
-        // 4. Lấy dữ liệu đi học từ DB
+        // 4. Lấy dữ liệu có mặt / vắng từ DB
         List<Object[]> presentCounts = recordRepository.countPresentSessionsByCourse(courseId);
         java.util.Map<String, Long> attendanceMap = presentCounts.stream()
                 .collect(Collectors.toMap(
@@ -191,19 +195,33 @@ public class CourseServiceImpl implements CourseService {
                         row -> (Long) row[1]
                 ));
 
-        // 5. Tính toán danh sách chi tiết (Lưu vào biến stats thay vì return ngay)
-        List<StudentAttendanceStat> stats = students.stream().map(student -> {
-            long attended = attendanceMap.getOrDefault(student.getStudentCode(), 0L);
-            long absent = totalSessionsPassed - attended;
-            if (absent < 0) absent = 0;
+        List<Object[]> absentCounts = recordRepository.countAbsentSessionsByCourse(courseId);
+        java.util.Map<String, Long> absentMap = absentCounts.stream()
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],
+                        row -> (Long) row[1]
+                ));
 
-            double percent = (totalSessionsPassed > 0) ? ((double) absent / totalSessionsPassed) * 100 : 0;
-            boolean isBanned = percent > 20;
+        final long totalSessionsFinal = totalSessions;
+
+        // 5. Tính toán danh sách chi tiết
+        List<StudentAttendanceStat> stats = students.stream().map(student -> {
+            String code = student.getStudentCode();
+            long attended = attendanceMap.getOrDefault(code, 0L);
+            long absent = 0;
+            double percent = 0;
+            boolean isBanned = false;
+            if (totalSessionsFinal > 0) {
+                long absentFromRecords = absentMap.getOrDefault(code, 0L);
+                absent = Math.max(absentFromRecords, totalSessionsFinal - attended);
+                percent = ((double) absent / totalSessionsFinal) * 100;
+                isBanned = percent > 20;
+            }
 
             return StudentAttendanceStat.builder()
                     .studentCode(student.getStudentCode())
                     .studentName(student.getLastName() + " " + student.getFirstName())
-                    .totalSessions(totalSessionsPassed)
+                    .totalSessions(totalSessionsFinal)
                     .attendedSessions(attended)
                     .absentSessions(absent)
                     .absentPercentage(Math.round(percent * 10.0) / 10.0)
@@ -211,32 +229,16 @@ public class CourseServiceImpl implements CourseService {
                     .build();
         }).collect(Collectors.toList());
 
-        // 6. --- THÊM MỚI: Tính tổng số lượng bị cấm thi ---
         int bannedCount = (int) stats.stream()
-                .filter(StudentAttendanceStat::isBanned) // Lọc những người bị ban
-                .count(); // Đếm
+                .filter(StudentAttendanceStat::isBanned)
+                .count();
 
-        // 7. Đóng gói vào DTO mới và trả về
         return CourseDashboardResponse.builder()
-                .totalBanned(bannedCount)       // Số lượng bị cấm thi
-                .studentDetails(stats)          // Danh sách chi tiết
+                .totalBanned(bannedCount)
+                .totalSessions(totalSessionsFinal)
+                .totalStudents(students.size())
+                .studentDetails(stats)
                 .build();
-    }
-    // SỬA HÀM NÀY ĐỂ TRÁNH XUNG ĐỘT TYPE
-    private long calculateTotalSessions(LocalDate start, LocalDate end, DayOfWeek dayOfWeek) {
-        long count = 0;
-        LocalDate date = start;
-        // Chuyển DayOfWeek (Custom) sang String để so sánh
-        String targetDayName = dayOfWeek.name();
-
-        while (!date.isAfter(end)) {
-            // date.getDayOfWeek() trả về java.time.DayOfWeek -> Lấy name() để so sánh
-            if (date.getDayOfWeek().name().equals(targetDayName)) {
-                count++;
-            }
-            date = date.plusDays(1);
-        }
-        return count;
     }
 
     @Override

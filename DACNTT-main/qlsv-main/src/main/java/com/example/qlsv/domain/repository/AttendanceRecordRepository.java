@@ -25,4 +25,14 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
             "com.example.qlsv.domain.model.enums.AttendanceStatus.EXCUSED) " +
             "GROUP BY r.student.studentCode")
     List<Object[]> countPresentSessionsByCourse(@Param("courseId") Long courseId);
+
+    @Query("SELECT COUNT(DISTINCT r.session.id) FROM AttendanceRecord r WHERE r.session.course.id = :courseId")
+    long countDistinctSessionsByCourseId(@Param("courseId") Long courseId);
+
+    @Query("SELECT r.student.studentCode, COUNT(r) " +
+            "FROM AttendanceRecord r " +
+            "WHERE r.session.course.id = :courseId " +
+            "AND r.status = com.example.qlsv.domain.model.enums.AttendanceStatus.ABSENT " +
+            "GROUP BY r.student.studentCode")
+    List<Object[]> countAbsentSessionsByCourse(@Param("courseId") Long courseId);
 }

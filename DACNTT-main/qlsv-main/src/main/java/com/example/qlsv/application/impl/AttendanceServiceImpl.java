@@ -4,6 +4,7 @@ import com.example.qlsv.application.dto.mapper.AttendanceSessionMapper;
 import com.example.qlsv.application.dto.request.StartSessionRequest;
 import com.example.qlsv.application.dto.request.StudentCheckInRequest;
 import com.example.qlsv.application.dto.response.*;
+import com.example.qlsv.application.service.AttendanceAbsenceMarkingService;
 import com.example.qlsv.application.service.AttendanceService;
 import com.example.qlsv.domain.exception.BusinessException;
 import com.example.qlsv.domain.exception.ResourceNotFoundException;
@@ -33,6 +34,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final UserRepository userRepository;
     private final AttendanceSessionMapper sessionMapper;
     private final GpsService gpsService;
+    private final AttendanceAbsenceMarkingService absenceMarkingService;
 
     @Override
     @Transactional
@@ -59,6 +61,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         // Logic đóng session cũ
         sessionRepository.findByCourseIdAndStatus(course.getId(), SessionStatus.OPEN)
                 .ifPresent(session -> {
+                    absenceMarkingService.markAbsentForSession(session, course.getId());
                     session.setStatus(SessionStatus.CLOSED);
                     sessionRepository.save(session);
                 });
@@ -142,6 +145,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             throw new BusinessException("Bạn không có quyền đóng phiên của người khác.");
         }
 
+        absenceMarkingService.markAbsentForSession(session, courseId);
         session.setStatus(SessionStatus.CLOSED);
         return sessionMapper.toResponse(sessionRepository.save(session));
     }
@@ -151,7 +155,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         if (!courseRepository.existsById(courseId)) {
             throw new ResourceNotFoundException("Course", "id", courseId);
         }
-        return sessionRepository.findByCourseIdOrderByStartTimeDesc(courseId).stream()
+        return sessionRepository.findByCourse_IdOrderByStartTimeDesc(courseId).stream()
                 .map(sessionMapper::toResponse)
                 .collect(Collectors.toList());
     }
